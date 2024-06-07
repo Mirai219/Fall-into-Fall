@@ -1,12 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.XR;
 
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] private float moveSpeed = 7f;
     [SerializeField] private LayerMask Ground;
     [SerializeField] private float jumpSpeed = 7f;
+    [SerializeField] private float rushDistance = 5f;
     [SerializeField] private float RisingGravityScale = 5f;
     [SerializeField] private float fallingGravityScale = 10f;
     [SerializeField] private Vector2 maxFallingSpeed = new Vector2(0, -10f);
@@ -32,6 +34,17 @@ public class PlayerController : MonoBehaviour
     private bool isJumping => rb.velocity.y > 1e-4;
     private bool isFalling => rb.velocity.y < -1e-4;
 
+<<<<<<< Updated upstream
+=======
+    private bool isRushing = false;
+    [SerializeField] private float rushDuration = 1f;
+    [SerializeField] private float rushingSpeed = 24f;
+    [SerializeField] private TrailRenderer trailRenderer;
+    [SerializeField] private Animator Animator;
+
+    private Coroutine jumpCoroutine;
+
+>>>>>>> Stashed changes
     // 是否带着松子
     private bool isTakingAcorn;
     public bool GetIsTakingAcorn() => isTakingAcorn;
@@ -67,6 +80,10 @@ public class PlayerController : MonoBehaviour
 
     private void CheckInput()
     {
+        if(isRushing)
+        {
+            return;
+        }
         moveInput = Input.GetAxisRaw("Horizontal");
 
         // 根据玩家输入逐渐改变速度
@@ -116,10 +133,74 @@ public class PlayerController : MonoBehaviour
                 KPressedTimer = 0f;
             }
         }
+
+        if(!isRushing && Input.GetKeyDown(KeyCode.J))
+        {
+            StartCoroutine(Rush());
+        }
+
+        
         ControllJump();
         CheckDirection();
     }
 
+<<<<<<< Updated upstream
+=======
+    private bool CheckJumpInputTolerance()
+    {
+        //考虑还未落地时的
+        if (Physics2D.Raycast(JumpToleranceChecker.position,Vector2.down,jumpToleranceDistance,LayerMask.GetMask("Ground")))
+        {
+            if (jumpCoroutine != null)
+            {
+                StopCoroutine(jumpCoroutine);
+            }
+            // 记录跳跃，落地后立即跳跃
+            jumpCoroutine = StartCoroutine(RecordJump());
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    private IEnumerator Rush()
+    {
+        isRushing = true;
+        rb.velocity = new Vector3(Mathf.Sign(transform.rotation.y) * rushingSpeed,3f,0f);
+        trailRenderer.emitting = true;
+        float originalGravity = rb.gravityScale;
+        rb.gravityScale = 1f;
+        yield return new WaitForSeconds(rushDuration);
+        rb.gravityScale = originalGravity;
+        trailRenderer.emitting = false;
+        isRushing = false;
+    }
+    private IEnumerator RecordJump()
+    {
+        Debug.Log("Tolerance");
+        while (!isGrounded)
+        {
+            yield return null;
+        }
+        yield return new WaitForSeconds(0.05f);
+        Jump();
+    }
+
+    private void Decelerate()
+    {
+        float sign = Mathf.Sign(currentSpeed);
+        currentSpeed -= sign * deceleration * Time.deltaTime;
+    }
+
+    private void Accelerate()
+    {
+        float sign = Mathf.Sign(moveInput);
+        currentSpeed += sign * acceleration * Time.deltaTime;
+    }
+
+>>>>>>> Stashed changes
     private void CheckDirection()
     {
         if (isMovingRight && moveInput < 0)
@@ -166,4 +247,6 @@ public class PlayerController : MonoBehaviour
     public bool IsJumping() => isJumping;
 
     public bool IsFalling() => isFalling;
+
+    public bool IsRushing() => isRushing;
 }
